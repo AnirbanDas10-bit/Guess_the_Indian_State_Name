@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indian States Geography Challenge</title>
+    <style>
+        /* Modern, mobile-friendly UI styling */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #F4F6F9;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        /* The map container is crucial for mobile scaling */
+        .map-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* Max width for desktop, scales down on mobile */
+            aspect-ratio: 4/5; /* Adjust based on your actual map image */
+            background-image: url('india-states.gif'); /* Your map image */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            background-color: white;
+            margin-bottom: 20px;
+        }
+
+        /* The Red Dot Marker */
+        #marker {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background-color: #FF3366;
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%); /* Centers the dot precisely */
+            display: none; /* Hidden until game starts */
+            box-shadow: 0 0 8px rgba(255, 51, 102, 0.8);
+        }
+
+        .controls {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 12px;
+            font-size: 16px;
+            background-color: #28A745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        #feedback {
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            min-height: 24px;
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 400px;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>Indian States Challenge</h2>
+    </div>
+
+    <div class="score-board">
+        <span id="playerNameDisplay">Player: </span>
+        <span id="scoreDisplay">Score: 0 | Round: 1/10</span>
+    </div>
+
+    <div class="map-container">
+        <div id="marker"></div>
+    </div>
+
+    <div id="feedback"></div>
+
+    <div class="controls" id="gameControls" style="display: none;">
+        <input type="text" id="guessInput" placeholder="Which state is marked?" autocomplete="off">
+        <button onclick="checkGuess()">Submit Guess</button>
+    </div>
+
+    <div class="controls" id="startControls">
+        <input type="text" id="nameInput" placeholder="Enter your name" autocomplete="off">
+        <button onclick="startGame()">Start Game</button>
+    </div>
+
+    <script>
+        // --- Game Data ---
+        // You will need to convert your CSV x/y coordinates into percentages 
+        // so the dot stays accurate when the map shrinks on mobile screens.
+        const stateData = [
+            { name: "West Bengal", x: 75, y: 55 }, // Example percentages (Left: 75%, Top: 55%)
+            { name: "Kerala", x: 35, y: 85 },
+            { name: "Maharashtra", x: 30, y: 60 },
+            // Add the rest of your 29 states here with X/Y as percentages of the image size
+        ];
+
+        let score = 0;
+        let currentRound = 1;
+        const totalRounds = 10;
+        let remainingStates = [];
+        let currentTarget = null;
+        let playerName = "Player";
+
+        const marker = document.getElementById('marker');
+        const feedback = document.getElementById('feedback');
+        const guessInput = document.getElementById('guessInput');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+
+        function startGame() {
+            const name = document.getElementById('nameInput').value.trim();
+            if (name) playerName = name;
+            
+            document.getElementById('playerNameDisplay').innerText = `Player: ${playerName}`;
+            document.getElementById('startControls').style.display = 'none';
+            document.getElementById('gameControls').style.display = 'flex';
+            
+            remainingStates = [...stateData]; // Copy array
+            score = 0;
+            currentRound = 1;
+            nextRound();
+        }
+
+        function nextRound() {
+            if (currentRound > totalRounds || remainingStates.length === 0) {
+                endGame();
+                return;
+            }
+
+            // Update UI
+            scoreDisplay.innerText = `Score: ${score} | Round: ${currentRound}/${totalRounds}`;
+            guessInput.value = '';
+            feedback.innerText = '';
+            
+            // Pick a random state
+            const randomIndex = Math.floor(Math.random() * remainingStates.length);
+            currentTarget = remainingStates[randomIndex];
+            remainingStates.splice(randomIndex, 1); // Remove it
+
+            // Move Marker (Using percentages makes it mobile responsive!)
+            marker.style.left = currentTarget.x + '%';
+            marker.style.top = currentTarget.y + '%';
+            marker.style.display = 'block';
+            
+            guessInput.focus();
+        }
+
+        function checkGuess() {
+            const userGuess = guessInput.value.trim().toLowerCase();
+            const actualState = currentTarget.name.toLowerCase();
+
+            if (userGuess === actualState) {
+                score++;
+                feedback.style.color = '#28A745';
+                feedback.innerText = 'Correct! +1';
+            } else {
+                score--;
+                feedback.style.color = '#DC3545';
+                feedback.innerText = `Wrong! -1. It was ${currentTarget.name}`;
+            }
+
+            currentRound++;
+            marker.style.display = 'none'; // Hide marker briefly
+            
+            // Wait 1.5 seconds so they can read the feedback, then go to next round
+            setTimeout(nextRound, 1500); 
+        }
+    </script>
+</body>
+</html>
